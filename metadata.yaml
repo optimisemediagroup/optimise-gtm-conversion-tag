@@ -3,6 +3,8 @@ documentation: "https://knowledge.optimisemedia.com/docs/advertiserimplementatio
 versions:
 
   # Latest version
+  - sha: b12d4febe82a6f8bdc0431783b638bfdb9b0c6ed
+    changeNotes: Change cookie name to OMG-{MID}
   - sha: df37e7ca72774f27caebf2752e55f7a00c2825f0
     changeNotes: Fix undefined bug
   # Older versions
