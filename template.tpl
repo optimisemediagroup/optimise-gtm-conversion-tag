@@ -104,6 +104,7 @@ const getCookieValues = require('getCookieValues');
 
 const MID = data.MID;
 const PID = data.PID;
+const cookieName = 'OMG-' + MID;
 const ecomm = copyFromDataLayer('ecommerce');
 //log(ecomm);
 
@@ -137,8 +138,8 @@ if(ecomm.purchase.actionField.coupon != 'undefined') {
 var url = 'https://track.omguk.com/e/si/?MID=' + encodeUriComponent(MID) + '&PID=' + encodeUriComponent(PID) + '&AppID=' + encodeUriComponent(AppID) + '&Status=' + OrderValue + '&Cur=' + data.CurrencyCode + '&VCode=' + encodeUriComponent(Vcode);
 
 // Add cookie attributes
-if(getCookieValues('optimiseevent',true).length > 0) {
-  url = url + '&' + getCookieValues('optimiseevent',true);
+if(getCookieValues(cookieName, true).length > 0) {
+  url = url + '&' + getCookieValues(cookieName, true);
 }
 
 // Add basket item data
@@ -305,7 +306,7 @@ ___WEB_PERMISSIONS___
             "listItem": [
               {
                 "type": 1,
-                "string": "optimiseevent"
+                "string": "OMG-*"
               }
             ]
           }
