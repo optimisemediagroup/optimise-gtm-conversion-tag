@@ -106,109 +106,103 @@ const MID = data.MID;
 const PID = data.PID;
 const cookieName = 'OMG-' + MID;
 const ecomm = copyFromDataLayer('ecommerce');
-//log(ecomm);
+const purchase = ecomm && ecomm.purchase ? ecomm.purchase : {};
+const actionField = purchase.actionField ? purchase.actionField : {};
+const products = purchase.products ? purchase.products : [];
+const cookieValues = getCookieValues(cookieName, true);
 
-//Set variables from either Fields or Enhanced Ecommerce dataLayer (if available)
-var AppID;
-var Vcode;
-var OrderValue;
-
-//AppID
-if(ecomm.purchase.actionField.id != 'undefined') {
-  AppID = ecomm.purchase.actionField.id;
-} else {
-  AppID = data.OrderReference;
-}
-
-//OrderValue
-if(ecomm.purchase.actionField.revenue != 'undefined') {
-  OrderValue = ecomm.purchase.actionField.revenue;
-} else {
-  OrderValue = data.OrderValue;
-}
-
-//Vcode
-if(ecomm.purchase.actionField.coupon != 'undefined') {
-  Vcode = ecomm.purchase.actionField.coupon;
-} else {
-  Vcode = data.Vcode;
-}
+// Set variables from either fields or the enhanced ecommerce dataLayer.
+var AppID = getValue(actionField.id, data.OrderReference, '');
+var OrderValue = getValue(actionField.revenue, data.OrderValue, '');
+var Vcode = getValue(actionField.coupon, data.Vcode, '');
+var CurrencyCode = getValue(data.CurrencyCode, '', '');
 
 // Declare base tracking URL
-var url = 'https://track.omguk.com/e/si/?MID=' + encodeUriComponent(MID) + '&PID=' + encodeUriComponent(PID) + '&AppID=' + encodeUriComponent(AppID) + '&Status=' + OrderValue + '&Cur=' + data.CurrencyCode + '&VCode=' + encodeUriComponent(Vcode);
+var url = 'https://track.omguk.com/e/si/?MID=' + encodeUriComponent(MID) + '&PID=' + encodeUriComponent(PID) + '&AppID=' + encodeUriComponent(AppID) + '&Status=' + OrderValue + '&Cur=' + CurrencyCode + '&VCode=' + encodeUriComponent(Vcode);
 
 // Add cookie attributes
-if(getCookieValues(cookieName, true).length > 0) {
-  url = url + '&' + getCookieValues(cookieName, true);
+if(cookieValues.length > 0) {
+  url = url + '&' + cookieValues;
 }
 
 // Add basket item data
-if (typeof ecomm.purchase != 'undefined'){
-	if (typeof ecomm.purchase.products != 'undefined'){
-		url = url + getBasketItems(ecomm.purchase.products);
-	}
+if (products.length > 0) {
+  url = url + getBasketItems(products);
 }
 
-log('Transaction ID: ' + ecomm.purchase.actionField.id);
-log('Order Value: ' + ecomm.purchase.actionField.revenue);
-log('Voucher: ' + ecomm.purchase.actionField.coupon);
+log('Transaction ID: ' + AppID);
+log('Order Value: ' + OrderValue);
+log('Voucher: ' + Vcode);
+log('Cookie = ' + cookieValues);
 
 log(url);
 sendPixel(url, data.gtmOnSuccess, data.gtmOnFailure);
 
 
-function getBasketItems(ecomProducts){
-	var iid = '';
-	var iname = '';
-	var ival = '';
-	var ivol = '';
-	var ibrand = '';
-	var icategory = '';
+function getValue(dataLayerValue, fallbackValue, defaultValue) {
+  if (hasValue(dataLayerValue)) {
+    return dataLayerValue;
+  }
 
-	for (var i = 0; i < ecomProducts.length; i++){
-		for (var key in ecomProducts[i]){
-			switch (key){
-				// ival
-				case "price":
-					log('value: ' + encodeUriComponent(ecomProducts[i][key].toString()));
-					ival = ival + encodeUriComponent(ecomProducts[i][key].toString()) + '|';
-				break;
-				// iid
-				case "id":
-					log('iid: ' + encodeUriComponent(ecomProducts[i][key].toString()));
-					iid = iid + encodeUriComponent(ecomProducts[i][key].toString()) + '|';
-				break;				
-				// iname
-				case "name":
-					log('iname: ' + encodeUriComponent(ecomProducts[i][key].toString()));
-					iname = iname + encodeUriComponent(ecomProducts[i][key].toString()) + '|';
-				break;
-				// ivol
-				case "quantity":
-					log('ivol: ' + encodeUriComponent(ecomProducts[i][key].toString()));
-					ivol = ivol + encodeUriComponent(ecomProducts[i][key].toString()) + '|';
-				break;
-				// ibrand
-				case "brand":
-					log('ibrand: ' + encodeUriComponent(ecomProducts[i][key].toString()));
-					ibrand = ibrand + encodeUriComponent(ecomProducts[i][key].toString()) + '|';
-				break;				
-				// icategory
-				case "category":
-					log('icategory: ' + encodeUriComponent(ecomProducts[i][key].toString()));
-					icategory = icategory + encodeUriComponent(ecomProducts[i][key].toString()) + '|';
-				break;
-				// log anything else
-				default:
-					log(key + ': ' + encodeUriComponent(ecomProducts[i][key].toString()));
-				break;
-			}
-		}
-	}
-  
-  var basketItems = '&iid=' + iid + '&iname=' + iname + '&ivol=' + ivol + '&ival=' + ival + '&icategory=' + icategory + '&ibrand=' + ibrand;
+  if (hasValue(fallbackValue)) {
+    return fallbackValue;
+  }
 
-	return basketItems;
+  return defaultValue;
+}
+
+function hasValue(value) {
+  return value !== undefined && value !== null && value !== 'undefined';
+}
+
+function getBasketItems(ecomProducts) {
+  var iid = '';
+  var iname = '';
+  var ival = '';
+  var ivol = '';
+  var ibrand = '';
+  var icategory = '';
+
+  for (var i = 0; i < ecomProducts.length; i++) {
+    var product = ecomProducts[i];
+
+    if (hasValue(product.price)) {
+      var price = encodeValue(product.price);
+      log('value: ' + price);
+      ival = ival + price + '|';
+    }
+    if (hasValue(product.id)) {
+      var id = encodeValue(product.id);
+      log('iid: ' + id);
+      iid = iid + id + '|';
+    }
+    if (hasValue(product.name)) {
+      var name = encodeValue(product.name);
+      log('iname: ' + name);
+      iname = iname + name + '|';
+    }
+    if (hasValue(product.quantity)) {
+      var quantity = encodeValue(product.quantity);
+      log('ivol: ' + quantity);
+      ivol = ivol + quantity + '|';
+    }
+    if (hasValue(product.brand)) {
+      var brand = encodeValue(product.brand);
+      log('ibrand: ' + brand);
+      ibrand = ibrand + brand + '|';
+    }
+    if (hasValue(product.category)) {
+      var category = encodeValue(product.category);
+      log('icategory: ' + category);
+      icategory = icategory + category + '|';
+    }
+  }
+
+  return '&iid=' + iid + '&iname=' + iname + '&ivol=' + ivol + '&ival=' + ival + '&icategory=' + icategory + '&ibrand=' + ibrand;
+}
+
+function encodeValue(value) {
+  return encodeUriComponent(value.toString());
 }
 
 
@@ -296,19 +290,7 @@ ___WEB_PERMISSIONS___
           "key": "cookieAccess",
           "value": {
             "type": 1,
-            "string": "specific"
-          }
-        },
-        {
-          "key": "cookieNames",
-          "value": {
-            "type": 2,
-            "listItem": [
-              {
-                "type": 1,
-                "string": "OMG-*"
-              }
-            ]
+            "string": "any"
           }
         }
       ]
